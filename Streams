@@ -1,0 +1,42 @@
+--creating a new schema Streams
+create or replace schema Streams;
+
+--creating streams for all the raw tables
+create or replace stream Accounts_Raw
+on table BANKING_DB.RAW_DATA.ACCOUNTS_RAW;
+
+create or replace stream Accounts_Raw_JSON
+on table BANKING_DB.RAW_DATA.ACCOUNTS_RAW_JSON;
+
+create or replace stream BRANCH_RAW
+on table BANKING_DB.RAW_DATA.BRANCH_RAW;
+
+create or replace stream BRANCH_RAW_JSON
+on table BANKING_DB.RAW_DATA.BRANCH_RAW_JSON;
+
+create or replace stream TRANSACTION_TYPE_RAW
+on table BANKING_DB.RAW_DATA.TRANSACTION_TYPE_RAW;
+
+create or replace stream CUSTOMER_RAW
+on table BANKING_DB.RAW_DATA.CUSTOMER_RAW;
+
+create or replace stream CUSTOMER_RAW_JSON
+on table BANKING_DB.RAW_DATA.CUSTOMER_RAW_JSON;
+
+create or replace stream FEEDBACK_RAW
+on table BANKING_DB.RAW_DATA.FEEDBACK_RAW;
+
+create or replace stream FEEDBACK_RAW_JSON
+on table BANKING_DB.RAW_DATA.FEEDBACK_RAW_JSON;
+
+create or replace stream TRANSACTION_RAW
+on table BANKING_DB.RAW_DATA.TRANSACTION_RAW;
+
+create or replace stream RISK_RAW
+on table BANKING_DB.RAW_DATA.RISK_RAW;
+
+create or replace stream RISK_RAW_JSON
+on table BANKING_DB.RAW_DATA.RISK_RAW_JSON;
+
+create or replace stream TRANSACTION_RAW_JSON
+on table BANKING_DB.RAW_DATA.TRANSACTION_RAW_JSON;
