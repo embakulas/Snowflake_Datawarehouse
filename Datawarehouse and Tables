@@ -1,0 +1,191 @@
+---Creating a Database Datawarehouse
+create or replace database Banking_DB;
+
+--creating Production Tables
+
+--creating Production Schema
+create or replace schema Production;
+
+--creating Production Tables in the schema Production
+--creating Transaction table which acts as a Fact Table in our star schema
+create or replace table Transaction_P cluster by (Transaction_ID)
+(
+    Transaction_ID int not null,
+    Date date,
+    Account_ID int,
+    customer_ID int,
+    Branch_ID int,
+    Risk_ID int,
+    Transaction_Type_ID int,
+    Feedback_ID int,
+    Amount Float
+);
+
+--creating Accounts Table which acts as a Dimension table
+create or replace table Accounts_P
+(
+    Account_ID int not null,
+    Account_Number int not null,
+    account_type VARCHAR(10),
+    Open_Date Date,
+    Close_Date Date,
+    Balance Float
+);
+
+--creating Branch Table in production which acts as a Dimension table
+create or replace table Branch_P cluster by (State)
+(
+    Branch_ID int not null,
+    Branch_name varchar(100),
+    Location varchar(50),
+    State varchar(30),
+    Manager varchar(50),
+    Assets Float
+);
+    --creating a masking policy to enforce column level security on Assets column- Only AccountADMIN and SYSADMIN can view the total Assets number
+    create or replace masking policy assets_masking_policy
+      AS (val FLOAT) RETURNS FLOAT ->
+        CASE
+          WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'SYSADMIN') THEN val
+          ELSE 000000
+        END;
+    
+    desc masking policy assets_masking_policy;
+    
+    alter table BANKING_DB.PRODUCTION.BRANCH_P 
+    modify column Assets
+    set masking policy assets_masking_policy;
+    
+    desc table BRANCH_P;
+
+--creating Customer table in Production
+create or replace table Customer_P
+(
+    Customer_ID int not null,
+    First_name varchar(30),
+    Last_name varchar(30),
+    Gender varchar(10),
+    Email varchar(50),
+    Phone char(12),
+    SSN char(11),
+    Address varchar(100)
+);
+
+alter table Customer_P
+alter Gender
+set data type varchar(30);
+
+    --creating a masking policy to enforce column level security on SSN column- Only AccountADMIN and SYSADMIN can view the SSN numbers
+    create masking policy ssn_masking_policy
+      AS (val STRING) RETURNS STRING ->
+        CASE
+          WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'SYSADMIN') THEN val
+          ELSE 'XXX-XX-XXXX'
+        END;
+    
+    desc masking policy ssn_masking_policy;
+    desc table CUSTOMER_P;
+    
+    alter table BANKING_DB.PRODUCTION.CUSTOMER_P 
+    modify column SSN
+    set masking policy ssn_masking_policy;
+
+--creating table Feedback which acts as dimension
+create or replace table Feedback_P
+(
+    Feedback_ID int not null,
+    Feedback_Type varchar(20),
+    Rating int,
+    Comments varchar(50)
+);
+
+--creating Risk Data which is a dimension
+create or replace table Risk_P
+(
+    Risk_ID int not null,
+    AML_Status varchar(20),
+    KYC varchar(30),
+    Fraud_Detection varchar(30)
+);
+
+--creating Transaction Type table which is a dimension
+create or replace table Transaction_Type_P
+(
+    Type_ID int,
+    Type varchar(20)
+);
+
+alter table TRANSACTION_TYPE_P
+alter Type
+set data type varchar(40);
+
+desc table Transaction_Type_P;
+
+
+--creating stage schema and raw tables to store the raw data
+create or replace schema Staging;
+
+alter schema STAGING
+rename to Raw_Data;
+
+create or replace table Accounts_Raw
+as
+select * from BANKING_DB.PRODUCTION.ACCOUNTS_P;
+
+create or replace table Branch_Raw
+as
+select * from BANKING_DB.PRODUCTION.BRANCH_P;
+
+create or replace table Customer_Raw
+as
+select * from BANKING_DB.PRODUCTION.CUSTOMER_P;
+
+desc table Customer_Raw;
+
+create or replace table Feedback_Raw
+as
+select * from BANKING_DB.PRODUCTION.FEEDBACK_P;
+
+create or replace table Risk_Raw
+as
+select * from BANKING_DB.PRODUCTION.Risk_P;
+
+create or replace table Transaction_Raw
+as
+select * from BANKING_DB.PRODUCTION.Transaction_P;
+
+create or replace table Transaction_Type_Raw
+as
+select * from BANKING_DB.PRODUCTION.Transaction_Type_P;
+
+--creating raw tables for data incoming in JSON
+
+create or replace table Accounts_Raw_JSON
+(
+    raw variant
+);
+
+create or replace table Branch_Raw_JSON
+(
+    raw variant
+);
+
+create or replace table Customer_Raw_JSON
+(
+    raw variant
+);
+
+create or replace table Feedback_Raw_JSON
+(
+    raw variant
+);
+
+create or replace table Risk_Raw_JSON
+(
+    raw variant
+);
+
+create or replace table Transaction_Raw_JSON
+(
+    raw variant
+);
