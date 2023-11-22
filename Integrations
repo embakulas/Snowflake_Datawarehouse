@@ -1,0 +1,9 @@
+--Creating an integration object between Snowflake and s3
+create or replace storage integration aws_snowflake
+    Type=External_Stage
+    Storage_Provider=s3
+    enabled=TRUE
+    storage_aws_role_arn='arn:aws:iam::183268570357:role/snowflakeaws_integration'
+    storage_allowed_locations=('s3://snowflakebanking/Banking_Data/');
+
+  desc integration aws_snowflake;
