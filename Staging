@@ -1,0 +1,78 @@
+--Staging areas between snowflake and aws
+--creating a new schema for stages
+create or replace schema Staging;
+
+
+--Accounts Table
+create or replace stage Accounts_JSON
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Accounts/JSON/'
+file_format=BANKING_DB.FILE_FORMATS.READ_JSON;
+
+create or replace stage Accounts_CSV
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Accounts/CSV/'
+file_format=BANKING_DB.FILE_FORMATS.READ_CSV;
+
+--Branch
+create or replace stage Branch_CSV
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Branch/CSV/'
+file_format=BANKING_DB.FILE_FORMATS.READ_CSV;
+
+create or replace stage Branch_JSON
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Branch/JSON/'
+file_format=BANKING_DB.FILE_FORMATS.READ_JSON;
+
+--Customer
+create or replace stage Customer_CSV
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Customers/CSV/'
+file_format=BANKING_DB.FILE_FORMATS.READ_CSV;
+
+create or replace stage Customer_JSON
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Customers/JSON/'
+file_format=BANKING_DB.FILE_FORMATS.READ_JSON;
+
+--Feedback
+create or replace stage Feedback_CSV
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Feedback/CSV/'
+file_format=BANKING_DB.FILE_FORMATS.READ_CSV;
+
+create or replace stage Feedback_JSON
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Feedback/JSON/'
+file_format=BANKING_DB.FILE_FORMATS.READ_JSON;
+
+--Risk
+create or replace stage Risk_CSV
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Risk/CSV/'
+file_format=BANKING_DB.FILE_FORMATS.READ_CSV;
+
+create or replace stage Risk_JSON
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Risk/JSON/'
+file_format=BANKING_DB.FILE_FORMATS.READ_JSON;
+
+--Transaction
+create or replace stage Transaction_CSV
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Transaction/CSV/'
+file_format=BANKING_DB.FILE_FORMATS.READ_CSV;
+
+create or replace stage Transaction_JSON
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Transaction/JSON/'
+file_format=BANKING_DB.FILE_FORMATS.READ_JSON;
+
+--Transaction Type
+create or replace stage Transaction_Type_CSV
+storage_integration=aws_snowflake
+url='s3://snowflakebanking/Banking_Data/staging_area/to_dwh/Transaction_Type/'
+file_format=BANKING_DB.FILE_FORMATS.READ_CSV;
+
+list @BANKING_DB.STAGING.Transaction_Type_csv;
