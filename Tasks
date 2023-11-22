@@ -1,0 +1,576 @@
+--creating a new schema for Tasks
+create or replace schema Tasks;
+
+--creating a new task to ingest data from  Accounts_raw_STAGE to Accounts_P
+create or replace task Accounts_raw_to_Accounts_P
+warehouse=Banking_WH_M
+schedule='1 minute'
+when system$stream_has_data('BANKING_DB.STREAMS.ACCOUNTS_RAW')
+as
+merge into BANKING_DB.PRODUCTION.ACCOUNTS_P as AP
+using
+(
+    select *
+    from BANKING_DB.STREAMS.ACCOUNTS_RAW
+) as AR
+on AP.Account_ID=AR.Account_ID and AP.Account_Number=AR.Account_Number
+when matched and METADATA$ACTION='DELETE' and metadata$isupdate='False'
+    then DELETE
+when matched and METADATA$ACTION='INSERT' and metadata$isupdate='True'
+    then update
+    set
+        AP.Account_ID=AR.Account_ID,
+        AP.Account_Number=AR.Account_Number,
+        AP.Account_Type=AR.Account_Type,
+        AP.Open_Date=AR.Open_Date,
+        AP.Close_Date=AR.Close_Date,
+        AP.Balance=AR.Balance
+when not matched and METADATA$ACTION='INSERT' and metadata$isupdate='False'
+    then insert
+                (Account_ID, Account_Number, Account_Type, Open_Date, Close_Date, Balance)
+         values
+                (AR.Account_ID, AR.Account_Number, AR.Account_Type, AR.Open_Date, AR.Close_Date, AR.Balance);
+
+desc task BANKING_DB.TASKS.ACCOUNTS_RAW_TO_ACCOUNTS_P;
+alter task BANKING_DB.TASKS.ACCOUNTS_RAW_TO_ACCOUNTS_P RESUME;
+alter task BANKING_DB.TASKS.ACCOUNTS_RAW_TO_ACCOUNTS_P SUSPEND;
+
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to ingest data from Accounts_Raw_JSON to Accounts_P
+create or replace task Account_Raw_JSON_to_Accounts_P
+warehouse=Banking_WH_M
+schedule='1 minute'
+when system$stream_has_data('BANKING_DB.STREAMS.ACCOUNTS_RAW_JSON')
+as
+merge into BANKING_DB.PRODUCTION.ACCOUNTS_P AP
+using
+(
+    select RAW:Account_ID:: int Account_ID,
+           RAW:Account_Number:: int Account_Number,
+           RAW:Account_Type:: varchar(20) Account_Type,
+           RAW:Open_Date::Date Open_Date,
+           RAW:Close_Date::Date Close_Date,
+           RAW:Balance::Float Balance,
+           metadata$action,
+           metadata$isupdate
+           from BANKING_DB.STREAMS.ACCOUNTS_RAW_JSON
+) ARJ
+on AP.Account_ID=ARJ.Account_ID and AP.Account_Number=ARJ.Account_Number
+when matched and METADATA$ACTION='DELETE' and metadata$isupdate='False'
+    then DELETE
+when matched and METADATA$ACTION='INSERT' and metadata$isupdate='True'
+    then update
+    set
+        AP.Account_ID=ARJ.Account_ID,
+        AP.Account_Number=ARJ.Account_Number,
+        AP.Account_Type=ARJ.Account_Type,
+        AP.Open_Date=ARJ.Open_Date,
+        AP.Close_Date=ARJ.Close_Date,
+        AP.Balance=ARJ.Balance
+when not matched and METADATA$ACTION='INSERT' and metadata$isupdate='False'
+    then 
+    insert
+        (
+            Account_ID,Account_Number,Account_Type,Open_date, Close_Date, Balance
+        )
+    values
+        (
+            ARJ.Account_ID,ARJ.Account_Number,ARJ.Account_Type,ARJ.Open_date, ARJ.Close_Date, ARJ.Balance
+        );
+
+desc task BANKING_DB.TASKS.ACCOUNT_RAW_JSON_TO_ACCOUNTS_P;
+alter task BANKING_DB.TASKS.ACCOUNT_RAW_JSON_TO_ACCOUNTS_P resume;
+alter task BANKING_DB.TASKS.ACCOUNT_RAW_JSON_TO_ACCOUNTS_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to ingest data from Branch_Raw Stream to Branch_P table in production
+create or replace task Branch_Raw_to_Branch_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.BRANCH_RAW')
+as
+merge into BANKING_DB.PRODUCTION.BRANCH_P BP
+using
+    (
+        select * from BANKING_DB.STREAMS.BRANCH_RAW
+    ) BR
+on BP.Branch_ID=BR.Branch_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+    then
+        DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+    then update
+    set
+        BP.Branch_ID=BR.Branch_ID,
+        BP.Branch_Name=BR.Branch_Name,
+        BP.State=BR.State,
+        BP.Manager=BR.Manager,
+        BP.Assets=BR.Assets
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+    then
+    insert
+        (
+            Branch_ID,Branch_Name,State, Manager, Assets
+        )
+    values
+        (
+            BR.Branch_ID,BR.Branch_Name,BR.State, BR.Manager, BR.Assets
+        );
+
+desc task BANKING_DB.TASKS.BRANCH_RAW_TO_BRANCH_P;
+alter task BANKING_DB.TASKS.BRANCH_RAW_TO_BRANCH_P resume;
+alter task BANKING_DB.TASKS.BRANCH_RAW_TO_BRANCH_P suspend;
+
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Branch_Raw_JSON to Production Branch Table
+create or replace task Branch_Raw_Json_to_Branch_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.BRANCH_RAW_JSON')
+as
+merge into BANKING_DB.PRODUCTION.BRANCH_P BP
+using
+    (
+        select RAW:Branch_ID::int Branch_ID,
+               RAW:Branch_Name::String Branch_Name,
+               RAW:Location::String Location,
+               RAW:State::String State,
+               RAW:Manager::String Manager,
+               RAW:Assets::float Assets,
+               metadata$action,
+               metadata$isupdate
+        from BANKING_DB.STREAMS.BRANCH_RAW_JSON
+    ) as BRJ
+on BP.Branch_ID=BRJ.Branch_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then 
+    DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+    set
+        BP.Branch_ID=BRJ.Branch_ID,
+        BP.Branch_Name=BRJ.Branch_Name,
+        BP.State=BRJ.State,
+        BP.Manager=BRJ.Manager,
+        BP.Assets=BRJ.Assets
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then
+    insert
+        (
+            Branch_ID,Branch_Name,State, Manager, Assets
+        )
+    values
+        (
+            BRJ.Branch_ID,BRJ.Branch_Name,BRJ.State, BRJ.Manager, BRJ.Assets
+        );
+
+select * from BANKING_DB.STREAMS.BRANCH_RAW_JSON;
+
+alter task BANKING_DB.TASKS.BRANCH_RAW_JSON_TO_BRANCH_P resume;
+alter task BANKING_DB.TASKS.BRANCH_RAW_JSON_TO_BRANCH_P suspend;
+
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Customer_Raw to Customer Production table
+create or replace task Customer_Raw_to_Customer_P
+warehouse =Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.CUSTOMER_RAW')
+as
+merge into BANKING_DB.PRODUCTION.CUSTOMER_P CP
+using
+(
+    select * from BANKING_DB.STREAMS.CUSTOMER_RAW
+)CR
+on CP.Customer_ID=CR.Customer_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+    set
+        CP.Customer_ID=CR.Customer_ID,
+        CP.First_name=CR.Last_Name,
+        CP.Last_Name=CR.Last_Name,
+        CP.Gender=CR.Gender,
+        CP.Email=CR.Email,
+        CP.Phone=CR.Phone,
+        CP.SSN=CR.SSN,
+        CP.Address=CR.Address
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+    then
+        insert
+            (
+                Customer_ID, First_Name,Last_Name, Gender, Email, Phone, SSN, Address
+            )
+        values
+            (
+                CR.Customer_ID, CR.First_Name, CR.Last_Name, CR.Gender, CR.Email, CR.Phone, CR.SSN, CR.Address
+            );
+
+alter task BANKING_DB.TASKS.CUSTOMER_RAW_TO_CUSTOMER_P resume;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Customer_Raw_Json to the production customer table
+create or replace task Customer_Raw_Json_to_Customer_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.CUSTOMER_RAW_JSON')
+as
+merge into BANKING_DB.PRODUCTION.CUSTOMER_P CP
+using
+(
+    select RAW:Customer_id::int Customer_ID,
+           Raw:First_name::String First_Name,
+           Raw:Last_name::String Last_Name,
+           Raw:Gender::String Gender,
+           Raw:Email::String Email,
+           Raw:Phone::String Phone,
+           Raw:SSN::String SSN,
+           Raw:Address::String Address,
+           metadata$action,
+           metadata$isupdate
+    from BANKING_DB.STREAMS.CUSTOMER_RAW_JSON
+) as CRJ
+on CP.Customer_ID=CRJ.Customer_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+     set CP.Customer_ID=CRJ.Customer_ID,
+         CP.First_Name=CRJ.First_Name,
+         CP.Last_Name=CRJ.Last_Name,
+         CP.Gender=CRJ.Gender,
+         CP.Email=CRJ.Email,
+         CP.Phone=CRJ.Phone,
+         CP.SSN=CRJ.SSN,
+         CP.Address=CRJ.Address
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then
+    insert
+        (
+            Customer_ID, First_Name, Last_Name, Gender, Email, Phone, SSN, Address
+        )
+    values
+        (
+            CRJ.Customer_ID, CRJ.First_Name, CRJ.Last_Name, CRJ.Gender, CRJ.Email, CRJ.Phone, CRJ.SSN, CRJ.Address
+        );
+
+desc task BANKING_DB.TASKS.CUSTOMER_RAW_JSON_TO_CUSTOMER_P;
+alter task BANKING_DB.TASKS.CUSTOMER_RAW_JSON_TO_CUSTOMER_P resume;
+alter task BANKING_DB.TASKS.CUSTOMER_RAW_JSON_TO_CUSTOMER_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Feedback_Raw to Feedback Production table
+create or replace task Feedback_Raw_to_Feedback_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.FEEDBACK_RAW')
+as
+merge into BANKING_DB.PRODUCTION.FEEDBACK_P FP
+using
+(
+    select * from BANKING_DB.STREAMS.FEEDBACK_RAW
+) as FR
+on FP.Feedback_ID=FR.Feedback_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+            set FP.Feedback_ID=FR.Feedback_ID,
+                FP.Feedback_Type=FR.Feedback_Type,
+                FP.Rating=FR.Rating,
+                FP.Comments=FR.Comments
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then 
+    insert
+        (Feedback_ID, Feedback_Type, Rating, Comments)
+    values
+        (FR.Feedback_ID, FR.Feedback_Type, FR.Rating, FR.Comments);
+
+alter task BANKING_DB.TASKS.FEEDBACK_RAW_TO_FEEDBACK_P resume;
+alter task BANKING_DB.TASKS.FEEDBACK_RAW_TO_FEEDBACK_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Feedback_Raw_Json to Production Feedback table
+create or replace task Feedback_Raw_JSON_to_Feedback_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.FEEDBACK_RAW_JSON')
+as
+merge into BANKING_DB.PRODUCTION.FEEDBACK_P FP
+using
+(
+    select RAW:Feedback_ID::int Feedback_ID,
+           RAW:Feedback_Type::String Feedback_Type,
+           RAW:Rating::int Rating,
+           RAW:Comments::String Comments,
+           metadata$action,
+           metadata$isupdate
+    from BANKING_DB.STREAMS.FEEDBACK_RAW_JSON
+) as FRJ
+on FP.Feedback_ID=FRJ.Feedback_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+            set FP.Feedback_ID=FRJ.Feedback_ID,
+                FP.Feedback_Type=FRJ.Feedback_Type,
+                FP.Rating=FRJ.Rating,
+                FP.Comments=FRJ.Comments
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then 
+    insert
+        (Feedback_ID, Feedback_Type, Rating, Comments)
+    values
+        (FRJ.Feedback_ID, FRJ.Feedback_Type, FRJ.Rating, FRJ.Comments);
+
+alter task BANKING_DB.TASKS.FEEDBACK_RAW_JSON_TO_FEEDBACK_P resume;
+alter task BANKING_DB.TASKS.FEEDBACK_RAW_JSON_TO_FEEDBACK_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Risk_Raw to Risk Production Table
+create or replace task Risk_Raw_to_Risk_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.RISK_RAW')
+as
+merge into BANKING_DB.PRODUCTION.RISK_P RP
+using
+(
+    select * from BANKING_DB.STREAMS.RISK_RAW
+) as RR
+on RP.Risk_ID=RR.Risk_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+            set
+                RP.Risk_ID=RR.Risk_ID,
+                RP.AML_Status=RR.AML_Status,
+                RP.KYC=RR.KYC,
+                RP.Fraud_Detection=RR.Fraud_Detection
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then 
+    insert
+        (
+            Risk_ID, AML_Status, KYC, Fraud_Detection
+        )
+    values
+        (
+            RR.Risk_ID, RR.AML_Status, RR.KYC, RR.Fraud_Detection
+        );
+
+alter task BANKING_DB.TASKS.RISK_RAW_TO_RISK_P resume;
+alter task BANKING_DB.TASKS.RISK_RAW_TO_RISK_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Risk_Raw_JSON to Risk Production Table
+create or replace task Risk_Raw_JSON_to_Risk_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.RISK_RAW_JSON')
+as
+merge into BANKING_DB.PRODUCTION.RISK_P RP
+using
+(
+    select RAW:Risk_ID::int Risk_ID,
+           RAW:AML_Status::String AML_Status,
+           RAW:KYC::String KYC,
+           RAW:Fraud_Detection::String Fraud_Detection,
+           metadata$action,
+           metadata$isupdate
+    from BANKING_DB.STREAMS.RISK_RAW_JSON
+) as RRJ
+on RP.Risk_ID=RRJ.Risk_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+            set
+                RP.Risk_ID=RRJ.Risk_ID,
+                RP.AML_Status=RRJ.AML_Status,
+                RP.KYC=RRJ.KYC,
+                RP.Fraud_Detection=RRJ.Fraud_Detection
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then 
+    insert
+        (
+            Risk_ID, AML_Status, KYC, Fraud_Detection
+        )
+    values
+        (
+            RRJ.Risk_ID, RRJ.AML_Status, RRJ.KYC, RRJ.Fraud_Detection
+        );
+
+alter task BANKING_DB.TASKS.RISK_RAW_JSON_TO_RISK_P resume;
+alter task BANKING_DB.TASKS.RISK_RAW_JSON_TO_RISK_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Transaction_Raw to Production Transaction table
+create or replace task Transaction_Raw_to_Transaction_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.TRANSACTION_RAW')
+as
+merge into BANKING_DB.PRODUCTION.TRANSACTION_P as TP
+using
+(
+    select * from BANKING_DB.STREAMS.TRANSACTION_RAW
+) TR
+on TP.Transaction_ID=TR.Transaction_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+        set
+            TP.Transaction_ID=TR.Transaction_ID,
+            TP.Date=TR.Date,
+            TP.Account_ID=TR.Account_ID,
+            TP.Customer_ID=TR.Customer_ID,
+            TP.Branch_ID=TR.Branch_ID,
+            TP.Risk_ID=TR.Risk_ID,
+            TP.Transaction_Type_ID=TR.Transaction_Type_ID,
+            TP.Feedback_ID=TR.Feedback_ID,
+            TP.Amount=TR.Amount
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then
+    insert
+        (
+            Transaction_ID, Date, Account_ID, Customer_ID, Branch_ID, Risk_ID, Transaction_Type_ID, Feedback_ID, Amount
+        )
+    values
+        (
+            TR.Transaction_ID, TR.Date, TR.Account_ID, TR.Customer_ID, TR.Branch_ID, TR.Risk_ID, TR.Transaction_Type_ID, TR.Feedback_ID, TR.Amount
+        );
+
+alter task BANKING_DB.TASKS.TRANSACTION_RAW_TO_TRANSACTION_P resume;
+alter task BANKING_DB.TASKS.TRANSACTION_RAW_TO_TRANSACTION_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Transaction_Raw to Production Transaction table
+create or replace task Transaction_Raw_JSON_to_Transaction_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.TRANSACTION_RAW_JSON')
+as
+merge into BANKING_DB.PRODUCTION.TRANSACTION_P as TP
+using
+(
+    select Raw:Transaction_ID::int Transaction_ID,
+           Raw:Date::Date as Date,
+           Raw:Account_ID::int Account_ID,
+           Raw:Customer_ID::int Customer_ID,
+           Raw:Branch_ID::int Branch_ID,
+           Raw:Risk_ID::int Risk_ID,
+           Raw:Transaction_Type_ID::int Transaction_Type_ID,
+           Raw:Feedback_ID::int Feedback_ID,
+           Raw:Amount::Float Amount,
+           metadata$action,
+           metadata$isupdate
+    from BANKING_DB.STREAMS.TRANSACTION_RAW_JSON
+) TRJ
+on TP.Transaction_ID=TRJ.Transaction_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+        set
+            TP.Transaction_ID=TRJ.Transaction_ID,
+            TP.Date=TRJ.Date,
+            TP.Account_ID=TRJ.Account_ID,
+            TP.Customer_ID=TRJ.Customer_ID,
+            TP.Branch_ID=TRJ.Branch_ID,
+            TP.Risk_ID=TRJ.Risk_ID,
+            TP.Transaction_Type_ID=TRJ.Transaction_Type_ID,
+            TP.Feedback_ID=TRJ.Feedback_ID,
+            TP.Amount=TRJ.Amount
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then
+    insert
+        (
+            Transaction_ID, Date, Account_ID, Customer_ID, Branch_ID, Risk_ID, Transaction_Type_ID, Feedback_ID, Amount
+        )
+    values
+        (
+            TRJ.Transaction_ID, TRJ.Date, TRJ.Account_ID, TRJ.Customer_ID, TRJ.Branch_ID, TRJ.Risk_ID, TRJ.Transaction_Type_ID, TRJ.Feedback_ID, TRJ.Amount
+        );
+
+alter task BANKING_DB.TASKS.TRANSACTION_RAW_JSON_TO_TRANSACTION_P resume;
+alter task BANKING_DB.TASKS.TRANSACTION_RAW_JSON_TO_TRANSACTION_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+
+
+
+
+--creating a task to transfer data from Transaction_Type_Raw to Transaction_Type Production table
+create or replace task Transaction_Type_Raw_to_Transaction_Type_P
+warehouse=Banking_WH_M
+schedule='1 Minute'
+when system$stream_has_data('BANKING_DB.STREAMS.TRANSACTION_TYPE_RAW')
+as
+merge into BANKING_DB.PRODUCTION.TRANSACTION_TYPE_P TTP
+using 
+(
+    select * from BANKING_DB.STREAMS.TRANSACTION_TYPE_RAW
+) as TTR
+on TTP.Type_ID=TTR.Type_ID
+when matched and metadata$action='DELETE' and metadata$isupdate='False'
+then DELETE
+when matched and metadata$action='INSERT' and metadata$isupdate='True'
+then update
+            set
+                TTP.Type_ID=TTR.Type_ID,
+                TTP.Type=TTR.Type
+when not matched and metadata$action='INSERT' and metadata$isupdate='False'
+then 
+    insert
+        (
+          Type_ID, Type  
+        )
+    values
+        (
+            TTR.Type_ID,TTR.Type
+        );
+
+alter task BANKING_DB.TASKS.TRANSACTION_TYPE_RAW_TO_TRANSACTION_TYPE_P resume;
+alter task BANKING_DB.TASKS.TRANSACTION_TYPE_RAW_TO_TRANSACTION_TYPE_P suspend;
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
+select * from BANKING_DB.PRODUCTION.TRANSACTION_TYPE_P;
+
+
+select * from BANKING_DB.STREAMS.TRANSACTION_TYPE_RAW;
