@@ -1,0 +1,96 @@
+--creating a new schema for Pipes
+create or replace schema Pipes;
+
+--creating pipes for all types
+create or replace pipe Accounts_Raw_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.ACCOUNTS_RAW
+         from @BANKING_DB.STAGING.ACCOUNTS_CSV
+    ON_ERROR=Continue;
+
+create or replace pipe Accounts_RAW_JSON_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.ACCOUNTS_RAW_JSON
+         from @BANKING_DB.STAGING.ACCOUNTS_JSON
+    ON_ERROR=Continue;
+
+create or replace pipe Branch_RAW_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.BRANCH_RAW
+         from @BANKING_DB.STAGING.BRANCH_CSV
+    ON_ERROR=Continue;
+
+create or replace pipe Branch_RAW_JSON_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.BRANCH_RAW_JSON
+         from @BANKING_DB.STAGING.BRANCH_JSON
+    ON_ERROR=Continue;
+
+create or replace pipe Customer_RAW_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.CUSTOMER_RAW
+         from @BANKING_DB.STAGING.CUSTOMER_CSV
+    ON_ERROR=Continue;
+
+create or replace pipe Customer_RAW_JSON_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.CUSTOMER_RAW_JSON
+         from @BANKING_DB.STAGING.CUSTOMER_JSON
+    ON_ERROR=Continue;
+
+create or replace pipe Feedback_RAW_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.FEEDBACK_RAW
+         from @BANKING_DB.STAGING.FEEDBACK_CSV
+    ON_ERROR=Continue;
+
+create or replace pipe Feedback_RAW_JSON_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.FEEDBACK_RAW_JSON
+         from @BANKING_DB.STAGING.FEEDBACK_JSON
+    ON_ERROR=Continue;
+
+create or replace pipe Risk_RAW_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.RISK_RAW
+         from @BANKING_DB.STAGING.RISK_CSV
+    ON_ERROR=Continue;
+
+create or replace pipe Risk_RAW_JSON_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.Risk_RAW_JSON
+         from @BANKING_DB.STAGING.RISK_JSON
+    ON_ERROR=Continue;
+
+create or replace pipe Transaction_RAW_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.TRANSACTION_RAW
+         from @BANKING_DB.STAGING.TRANSACTION_CSV
+    ON_ERROR=Continue;
+
+create or replace pipe Transaction_RAW_JSON_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.TRANSACTION_RAW_JSON
+         from @BANKING_DB.STAGING.TRANSACTION_JSON
+    ON_ERROR=Continue;
+
+create or replace pipe Transaction_Type_RAW_Pipe
+auto_ingest=TRUE
+as
+    copy into BANKING_DB.RAW_DATA.TRANSACTION_TYPE_RAW
+         from @BANKING_DB.STAGING.TRANSACTION_TYPE_CSV
+    ON_ERROR=Continue;
+
+show pipes;
