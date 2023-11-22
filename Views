@@ -1,0 +1,12 @@
+create or replace schema VIEWS;
+
+--creating a view to check the status of tasks
+create or replace view Check_Task_Status
+as(
+    select * 
+    from table(information_schema.task_history(
+        scheduled_time_range_start=>dateadd('hour',-1,current_timestamp()),
+        result_limit=>100))
+);
+
+select * from BANKING_DB.VIEWS.CHECK_TASK_STATUS;
