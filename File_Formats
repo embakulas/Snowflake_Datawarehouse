@@ -1,0 +1,20 @@
+--creating a seperate schema for storing all the file formats
+create or replace schema File_Formats;
+
+--creating file format for CSV
+create or replace file format read_csv
+    Type=csv
+    field_delimiter = ','
+    record_delimiter = '\n'
+    skip_header=1
+    field_optionally_enclosed_by='\042'
+    trim_space=FALSE
+    ERROR_ON_COLUMN_COUNT_MISMATCH=TRUE
+    ESCAPE='None'
+    ESCAPE_UNENCLOSED_FIELD='\134'
+    DATE_FORMAT='AUTO'
+    TIMESTAMP_FORMAT='Auto';
+
+--creating a file format for JSON
+create or replace file format read_json
+    Type=Json;
