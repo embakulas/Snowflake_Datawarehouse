@@ -49,4 +49,4 @@ Banking Data Warehouse Project Requirements Document
     Columns: Risk_ID, customer_id, aml_status, KYC_status, fraud_status
     7.	Customer Feedback Dimension:
     Collect customer feedback data, including feedback type, ratings, and comments.
-    Columns: feedback_id, customer_id, feedback_type, rating, comments.
+    Columns: feedback_id, customer_id, feedback_type, rating, comments..
