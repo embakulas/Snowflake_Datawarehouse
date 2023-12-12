@@ -8,7 +8,7 @@ create or replace schema Production;
 
 --creating Production Tables in the schema Production
 --creating Transaction table which acts as a Fact Table in our star schema
-create or replace table Transaction_P cluster by (Transaction_ID)
+create or replace table Transaction_P cluster by (Date)
 (
     Transaction_ID int not null,
     Date date,
